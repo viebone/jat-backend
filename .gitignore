@@ -1,0 +1,22 @@
+# Ignore Python bytecode and compiled files
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environments
+venv/
+env/
+
+# Ignore sensitive information like secrets or keys
+instance/
+config.py
+*.env
+
+# Ignore database files
+*.sqlite3
+*.db
+
+# Ignore cache directories
+.cache/
+
+#ignore uploads dir
+uploads
