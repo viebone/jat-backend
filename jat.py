@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from flask import Flask
+from flask import Flask, jsonify, redirect, url_for, request, make_response
 from flask_cors import CORS
 from extensions import db, login_manager, migrate, limiter, csrf  # Import csrf from extensions
 from models import Users  # Import the Users model explicitly
@@ -8,37 +8,58 @@ from config import ProductionConfig, DevelopmentConfig
 from flask_talisman import Talisman
 import os
 
+load_dotenv()  # Load .env variables
+
 app = Flask(__name__)
 
 # Load the environment from system environment variable or default to 'development'
 env = os.environ.get('FLASK_ENV', 'development')
+print(f"Environment: {env}")
+print(f"Loaded DATABASE_URL: {os.environ.get('DATABASE_URL')}")
+
+if not env:
+    env = "development"
+    print("Environment not set, defaulting to 'development'")
 
 # Set up configurations based on the environment
 if env == 'production':
+    print("Environment = loading production variables")
     app.config.from_object('config.ProductionConfig')  # Load production settings
     # Initialize Talisman with default settings
-    talisman = Talisman(app)
-else:
-    app.config.from_object('config.DevelopmentConfig')  # Load development settings
-    talisman = None  # Do not enforce HTTPS in development
-# Enable CORS for the entire app
-CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}},
+    #talisman = Talisman(app)
+    # Enable CORS for the entire app
+    CORS(app, resources={r"/*": {"origins": "https://jat-frontend.fly.dev"}},
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-     allow_headers=["Content-Type", "Authorization", "X-CSRFToken"],
-     expose_headers=["Content-Type", "Authorization", "X-CSRFToken"],
+     allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
+     expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      supports_credentials=True)
-
-# Initialize extensions
+else:
+    print("Environment = loading development variables")
+    app.config.from_object('config.DevelopmentConfig')  # Load development settings
+    
+    #talisman = None  # Do not enforce HTTPS in development
+    # Enable CORS for the entire app
+    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}},
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+     allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
+     expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
+     supports_credentials=True)
+#init db
 try:
     db.init_app(app)
-    migrate.init_app(app, db)
+    migrate.init_app(app, db)  # Initialize Flask-Migrate
     print("Database initialized successfully")
     print("Database initialized with Flask app")
 except Exception as e:
-    print(f"Error initializing the database: {str(e)}")
+    print(f"Error initializing the database_: {str(e)}")
+#print(f"All environment variables: {os.environ}")
+print(f"FLASK_ENV: {os.environ.get('FLASK_ENV')}")
+print(f"DATABASE_URL: {os.environ.get('DATABASE_URL')}")
+
 
 login_manager.init_app(app)
 csrf.init_app(app)
+#csrf.exempt(main_bp)  # Exempt the entire blueprint
 
 # Set login properties
 login_manager.login_view = 'main.login'
@@ -50,10 +71,37 @@ limiter.default_limits = ["200 per day", "50 per hour"]
 
 # Register the blueprint
 app.register_blueprint(main_bp)  # Register the blueprint from routes.py
-
+ 
 @login_manager.user_loader
 def load_user(user_id):
     return Users.query.get(int(user_id))
 
+@login_manager.unauthorized_handler
+def handle_unauthorized():
+    # If the request is to an API endpoint, return JSON instead of redirecting
+    if request.path.startswith("/api/"):
+        response = jsonify({"error": "Unauthorized"})
+        response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response, 401
+    # Otherwise, redirect to the login page
+    return redirect(url_for("main.login"))
+
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRFToken, x-csrftoken"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response, 200
+
+    
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    if os.environ.get("FLASK_ENV") == "production":
+        app.run(host="0.0.0.0", port=8080)  # Production settings
+    else:
+        app.run(debug=True)  # Local development settings
+

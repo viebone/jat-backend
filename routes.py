@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from extensions import db, limiter, csrf  # Import csrf from extensions
-from flask import request, jsonify, Blueprint, current_app, session, make_response
+from flask import request, jsonify, Blueprint, current_app, session, make_response, redirect, url_for
 from flask_wtf.csrf import generate_csrf
 from flask_bcrypt import Bcrypt
 from models import JobListing, Note, Document, Users
@@ -25,7 +25,8 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+# Load the environment from system environment variable or default to 'development'
+env = os.environ.get('FLASK_ENV', 'development')
 
 # API to get jobs with filters
 @bp.route('/api/jobs', methods=['GET'])
@@ -301,7 +302,18 @@ def login():
     if request.method == 'OPTIONS':
         # Handle the preflight OPTIONS request
         response = make_response()
-        response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+        print("Handling OPTIONS preflight")
+        print(f"Request Headers: {request.headers}")
+
+        # Dynamically set Access-Control-Allow-Origin
+        origin = request.headers.get("Origin")
+        if env == "production" and origin == "https://jat-frontend.fly.dev":
+            response.headers.add("Access-Control-Allow-Origin", "https://jat-frontend.fly.dev")
+        elif env == "development" and origin == "http://localhost:3000":
+            response.headers.add("Access-Control-Allow-Origin", "http://localhost:3000")
+        else:
+            return jsonify({"error": "Origin not allowed"}), 403  # Block other origins
+
         response.headers.add("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
         response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRFToken")
         response.headers.add("Access-Control-Allow-Credentials", "true")
@@ -335,6 +347,7 @@ def login():
     return jsonify({'error': 'Method not allowed'}), 405
 
 
+
 # Logout Route
 @bp.route('/logout', methods=['POST'])
 @login_required
@@ -357,4 +370,7 @@ def get_user_details_api():
 def get_csrf_token():
     token = generate_csrf()  # Generate CSRF token
     return jsonify({'csrf_token': token})
+
+
+
 
