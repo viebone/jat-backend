@@ -12,10 +12,18 @@ primary_region = "lhr"
   processes = ["app"]
 
 [[vm]]
-  size = "shared-cpu-1x"
+  size = "shared-cpu-2x"
+  memory = "1024mb"
 
 [env]
   FLASK_APP = "wsgi"
   FLASK_ENV = "production"
   SECRET_KEY = "albatros"
   DATABASE_URL="postgresql://postgres:2k5KgNpsX2McUor@jat-db.flycast:5432/postgres"
+  PYTHONPATH = "/app"
+  REDIS_URL = "redis://default:b7574f6dc4084a11a41c26138aa73093@fly-jat.upstash.io:6379"
+
+[deploy]
+release_command = "/opt/venv/bin/flask db upgrade"
+
+

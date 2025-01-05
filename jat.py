@@ -6,11 +6,29 @@ from models import Users  # Import the Users model explicitly
 from routes import bp as main_bp  # Import the blueprint from routes.py
 from config import ProductionConfig, DevelopmentConfig
 from flask_talisman import Talisman
+from flask_session import Session
+import redis
 import os
 
 load_dotenv()  # Load .env variables
 
 app = Flask(__name__)
+
+# Configure the session
+if os.getenv("FLASK_ENV") == "production":
+    redis_url = os.getenv("REDIS_URL")
+    redis_client = redis.StrictRedis.from_url(redis_url)
+    app.config["SESSION_TYPE"] = "redis"
+    app.config["SESSION_PERMANENT"] = False
+    app.config["SESSION_USE_SIGNER"] = True
+    app.config["SESSION_KEY_PREFIX"] = "jat:"
+    app.config["SESSION_REDIS"] = redis_client
+else:
+    # Use in-memory session storage in development
+    app.config["SESSION_TYPE"] = "filesystem"
+
+# Initialize the session extension
+Session(app)
 
 # Load the environment from system environment variable or default to 'development'
 env = os.environ.get('FLASK_ENV', 'development')
@@ -33,6 +51,9 @@ if env == 'production':
      allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      supports_credentials=True)
+    
+    # Configure Flask-Limiter with Redis in production
+    limiter.storage_uri = os.getenv("REDIS_URL")
 else:
     print("Environment = loading development variables")
     app.config.from_object('config.DevelopmentConfig')  # Load development settings
@@ -44,6 +65,10 @@ else:
      allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      supports_credentials=True)
+    
+    # Use in-memory storage for Flask-Limiter in development
+    limiter.storage_uri = "memory://"
+    
 #init db
 try:
     db.init_app(app)
@@ -81,7 +106,11 @@ def handle_unauthorized():
     # If the request is to an API endpoint, return JSON instead of redirecting
     if request.path.startswith("/api/"):
         response = jsonify({"error": "Unauthorized"})
-        response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        if env == 'production':
+            response.headers["Access-Control-Allow-Origin"] = "https://jat-frontend.fly.dev"
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response, 401
     # Otherwise, redirect to the login page
@@ -91,7 +120,11 @@ def handle_unauthorized():
 def handle_preflight():
     if request.method == "OPTIONS":
         response = make_response()
-        response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        if env == 'production':
+            response.headers["Access-Control-Allow-Origin"] = "https://jat-frontend.fly.dev"
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+
         response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRFToken, x-csrftoken"
         response.headers["Access-Control-Allow-Credentials"] = "true"

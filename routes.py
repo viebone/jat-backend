@@ -355,16 +355,28 @@ def logout():
     logout_user()
     return '', 204  # No content to return, just a successful response
 
-# Get user details API
+@csrf.exempt
 @bp.route('/api/user-details', methods=['GET'])
 @login_required
 def get_user_details_api():
-    # Return the current user's details, such as their nickname and email
-    user_details = {
-        "nickname": current_user.nickname,
-        "email": current_user.email
-    }
-    return jsonify(user_details), 200
+    # Log the session and current_user details for debugging
+    print(f"Session content: {dict(session)}")  # Log session content (use dict() for safe printing)
+    print(f"Is user authenticated: {current_user.is_authenticated}")  # Check if the user is authenticated
+    print(f"Current user: {current_user}")  # Log the current_user object
+
+    if current_user.is_authenticated:
+        # Return user details if authenticated
+        user_details = {
+            "nickname": current_user.nickname,
+            "email": current_user.email
+        }
+        print(f"User details: {user_details}")
+        return jsonify(user_details), 200
+    else:
+        # Return an error if not authenticated
+        print("User is not authenticated.")
+        return jsonify({"error": "User not authenticated"}), 401
+
 
 @bp.route('/api/get-csrf-token', methods=['GET'])
 def get_csrf_token():
