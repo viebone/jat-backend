@@ -8,7 +8,7 @@ env/
 
 # Ignore sensitive information like secrets or keys
 instance/
-config.py
+# config.py  # Now safe to commit since it uses environment variables
 *.env
 
 # Ignore database files
