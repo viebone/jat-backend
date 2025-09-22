@@ -46,7 +46,8 @@ if env == 'production':
     # Initialize Talisman with default settings
     #talisman = Talisman(app)
     # Enable CORS for the entire app
-    CORS(app, resources={r"/*": {"origins": "https://jat-frontend.fly.dev"}},
+    frontend_url = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
+    CORS(app, resources={r"/*": {"origins": frontend_url}},
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
@@ -118,7 +119,7 @@ def handle_unauthorized():
     if request.path.startswith("/api/"):
         response = jsonify({"error": "Unauthorized"})
         if env == 'production':
-            response.headers["Access-Control-Allow-Origin"] = "https://jat-frontend.fly.dev"
+            response.headers["Access-Control-Allow-Origin"] = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
         else:
             response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
 
@@ -132,7 +133,7 @@ def handle_preflight():
     if request.method == "OPTIONS":
         response = make_response()
         if env == 'production':
-            response.headers["Access-Control-Allow-Origin"] = "https://jat-frontend.fly.dev"
+            response.headers["Access-Control-Allow-Origin"] = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
         else:
             response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
 
