@@ -96,6 +96,16 @@ limiter.default_limits = ["200 per day", "50 per hour"]
 
 # Register the blueprint
 app.register_blueprint(main_bp)  # Register the blueprint from routes.py
+
+# Auto-run database migrations in production
+if os.environ.get("FLASK_ENV") == "production":
+    with app.app_context():
+        try:
+            from flask_migrate import upgrade
+            upgrade()
+            print("Database migrations applied successfully")
+        except Exception as e:
+            print(f"Migration error: {e}")
  
 @login_manager.user_loader
 def load_user(user_id):
@@ -133,16 +143,8 @@ def handle_preflight():
     
 
 if __name__ == "__main__":
-    # Auto-run database migrations in production
     if os.environ.get("FLASK_ENV") == "production":
-        with app.app_context():
-            try:
-                from flask_migrate import upgrade
-                upgrade()
-                print("Database migrations applied successfully")
-            except Exception as e:
-                print(f"Migration error: {e}")
-        app.run(host="0.0.0.0", port=8080)  # Production settings_
+        app.run(host="0.0.0.0", port=8080)  # Production settings
     else:
         app.run(debug=True)  # Local development settings
 
