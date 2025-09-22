@@ -142,7 +142,7 @@ if __name__ == "__main__":
                 print("Database migrations applied successfully")
             except Exception as e:
                 print(f"Migration error: {e}")
-        app.run(host="0.0.0.0", port=8080)  # Production settings
+        app.run(host="0.0.0.0", port=8080)  # Production settings_
     else:
         app.run(debug=True)  # Local development settings
 
