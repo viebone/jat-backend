@@ -14,6 +14,8 @@ class ProductionConfig(Config):
     SESSION_COOKIE_SAMESITE = 'None'  # Control when cookies are sent, adjust to 'Strict' if needed
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')  # Get the database URL from environment
     DEBUG = False  # Ensure debug mode is off in production
+    # CORS settings for production
+    FRONTEND_URL = os.environ.get('FRONTEND_URL', 'https://jat-frontend-production.up.railway.app')
 
 class DevelopmentConfig(Config):
     """Development-specific configuration."""
@@ -22,3 +24,5 @@ class DevelopmentConfig(Config):
     SESSION_COOKIE_SAMESITE = 'Lax'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://postgres:1478@localhost/jat')  # Default to local DB if not set
     DEBUG = True  # Enable debug mode
+    # CORS settings for development
+    FRONTEND_URL = 'http://localhost:3000'

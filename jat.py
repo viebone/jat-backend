@@ -46,8 +46,7 @@ if env == 'production':
     # Initialize Talisman with default settings
     #talisman = Talisman(app)
     # Enable CORS for the entire app
-    frontend_url = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
-    CORS(app, resources={r"/*": {"origins": frontend_url}},
+    CORS(app, resources={r"/*": {"origins": app.config['FRONTEND_URL']}},
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
@@ -61,7 +60,7 @@ else:
     
     #talisman = None  # Do not enforce HTTPS in development
     # Enable CORS for the entire app
-    CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}},
+    CORS(app, resources={r"/*": {"origins": app.config['FRONTEND_URL']}},
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
      expose_headers=["Content-Type", "Authorization", "X-CSRFToken", "x-csrftoken"],
@@ -118,10 +117,7 @@ def handle_unauthorized():
     # If the request is to an API endpoint, return JSON instead of redirecting
     if request.path.startswith("/api/"):
         response = jsonify({"error": "Unauthorized"})
-        if env == 'production':
-            response.headers["Access-Control-Allow-Origin"] = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response.headers["Access-Control-Allow-Origin"] = app.config['FRONTEND_URL']
 
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response, 401
@@ -132,10 +128,7 @@ def handle_unauthorized():
 def handle_preflight():
     if request.method == "OPTIONS":
         response = make_response()
-        if env == 'production':
-            response.headers["Access-Control-Allow-Origin"] = os.getenv("FRONTEND_URL", "https://jat-frontend.fly.dev")
-        else:
-            response.headers["Access-Control-Allow-Origin"] = "http://localhost:3000"
+        response.headers["Access-Control-Allow-Origin"] = app.config['FRONTEND_URL']
 
         response.headers["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS, PUT, DELETE"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-CSRFToken, x-csrftoken"
