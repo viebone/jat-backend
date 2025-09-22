@@ -99,13 +99,14 @@ app.register_blueprint(main_bp)  # Register the blueprint from routes.py
 
 # Auto-run database migrations in production
 if os.environ.get("FLASK_ENV") == "production":
-    with app.app_context():
-        try:
+    try:
+        with app.app_context():
             from flask_migrate import upgrade
             upgrade()
             print("Database migrations applied successfully")
-        except Exception as e:
-            print(f"Migration error: {e}")
+    except Exception as e:
+        print(f"Migration error (continuing anyway): {e}")
+        # Don't crash the app if migration fails
  
 @login_manager.user_loader
 def load_user(user_id):
