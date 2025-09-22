@@ -133,7 +133,15 @@ def handle_preflight():
     
 
 if __name__ == "__main__":
+    # Auto-run database migrations in production
     if os.environ.get("FLASK_ENV") == "production":
+        with app.app_context():
+            try:
+                from flask_migrate import upgrade
+                upgrade()
+                print("Database migrations applied successfully")
+            except Exception as e:
+                print(f"Migration error: {e}")
         app.run(host="0.0.0.0", port=8080)  # Production settings
     else:
         app.run(debug=True)  # Local development settings
