@@ -2,8 +2,12 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, url_for, request, make_response
 from flask_cors import CORS
 from extensions import db, login_manager, migrate, limiter, csrf  # Import csrf from extensions
-from models import Users  # Import the Users model explicitly
-from routes import bp as main_bp  # Import the blueprint from routes.py
+from features.authentication.models import Users  # Import the Users model from authentication feature
+from features.authentication.routes import auth_bp
+from features.job_discovery.routes import job_discovery_bp
+from features.job_tracking.routes import job_tracking_bp
+from features.job_organization.routes import job_organization_bp
+from features.job_outcomes.routes import job_outcomes_bp
 from config import ProductionConfig, DevelopmentConfig
 from flask_talisman import Talisman
 from flask_session import Session
@@ -87,15 +91,19 @@ csrf.init_app(app)
 #csrf.exempt(main_bp)  # Exempt the entire blueprint
 
 # Set login properties
-login_manager.login_view = 'main.login'
+login_manager.login_view = 'authentication.login'
 login_manager.login_message_category = 'info'
 
 # Bind the rate limiter to the app
 limiter.init_app(app)
 limiter.default_limits = ["200 per day", "50 per hour"]
 
-# Register the blueprint
-app.register_blueprint(main_bp)  # Register the blueprint from routes.py
+# Register the feature blueprints
+app.register_blueprint(auth_bp)
+app.register_blueprint(job_discovery_bp)
+app.register_blueprint(job_tracking_bp)
+app.register_blueprint(job_organization_bp)
+app.register_blueprint(job_outcomes_bp)
 
 # Auto-run database migrations in production
 if os.environ.get("FLASK_ENV") == "production":
@@ -122,7 +130,7 @@ def handle_unauthorized():
         response.headers["Access-Control-Allow-Credentials"] = "true"
         return response, 401
     # Otherwise, redirect to the login page
-    return redirect(url_for("main.login"))
+    return redirect(url_for("authentication.login"))
 
 @app.before_request
 def handle_preflight():
